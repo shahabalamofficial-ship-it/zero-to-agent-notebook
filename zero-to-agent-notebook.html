@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Zero to Agent — My Notebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --paper:#FBF7EE;
+    --paper-2:#F5EFE1;
+    --ink:#2B2A28;
+    --ink-soft:#5B564C;
+    --rule-blue:#B9CEE0;
+    --margin-red:#E3A6A0;
+    --hi-yellow:#F4E04D;
+    --hi-pink:#FF7FC0;
+    --teal:#3E7C7C;
+    --teal-dark:#2E5F5F;
+    --shadow: 0 8px 24px rgba(43,42,40,0.12);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; overscroll-behavior:none;}
+  #app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; position:relative;}
+
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .hand{font-family:'Caveat',cursive;}
+
+  /* ===== Header ===== */
+  header{
+    position:sticky; top:0; z-index:40;
+    background:var(--paper); border-bottom:2px solid var(--ink);
+    padding:14px 16px 10px;
+  }
+  .brand{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .brand h1{font-family:'Caveat',cursive; font-weight:700; font-size:30px; margin:0; line-height:1;}
+  .brand .ur{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .header-actions{display:flex; gap:8px;}
+  .icon-btn{
+    border:2px solid var(--ink); background:var(--paper); border-radius:10px;
+    width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+    font-size:16px; cursor:pointer;
+  }
+  .icon-btn:active{transform:translateY(1px);}
+  .search-wrap{margin-top:10px; display:none;}
+  .search-wrap.open{display:block;}
+  .search-wrap input{
+    width:100%; padding:10px 12px; border:2px solid var(--ink); border-radius:10px;
+    font-family:'Inter'; font-size:15px; background:#fff;
+  }
+
+  .progress-bar-outer{
+    margin-top:10px; height:10px; border-radius:6px; background:var(--paper-2);
+    border:1.5px solid var(--ink); overflow:hidden;
+  }
+  .progress-bar-inner{height:100%; background:linear-gradient(90deg,var(--hi-yellow),var(--hi-pink)); width:0%; transition:width .4s;}
+  .progress-label{font-size:12px; color:var(--ink-soft); margin-top:5px; display:flex; justify-content:space-between;}
+
+  main{flex:1; padding:14px 16px 90px;}
+
+  footer.credit{
+    text-align:center; padding:18px 16px 28px; color:var(--ink-soft); font-size:12.5px; line-height:1.6;
+    border-top:1.5px solid var(--rule-blue); margin-top:10px;
+  }
+  footer.credit .hand{font-size:19px; color:var(--ink); display:block; margin-bottom:2px;}
+
+  /* ===== Phase tabs (home) ===== */
+  .phase-card{
+    position:relative; display:flex; align-items:center; gap:12px;
+    padding:14px 14px 14px 20px; margin-bottom:12px; border-radius:12px;
+    border:2px solid var(--ink); background:var(--paper); cursor:pointer;
+    box-shadow: 4px 4px 0 rgba(43,42,40,0.08);
+  }
+  .phase-card:active{transform:translate(2px,2px); box-shadow:none;}
+  .phase-tab-color{
+    position:absolute; left:-2px; top:8px; bottom:8px; width:10px; border-radius:0 6px 6px 0;
+  }
+  .phase-num{font-family:'IBM Plex Mono'; font-size:12px; color:var(--ink-soft);}
+  .phase-title{font-family:'Caveat'; font-weight:700; font-size:22px; line-height:1.1; margin:2px 0 4px;}
+  .phase-meta{font-size:12px; color:var(--ink-soft);}
+  .phase-progress-ring{margin-left:auto; text-align:center; font-family:'IBM Plex Mono'; font-size:12px; min-width:46px;}
+  .phase-progress-ring b{display:block; font-size:16px; font-family:'Inter'; font-weight:700;}
+
+  .section-label{font-family:'Caveat'; font-size:20px; font-weight:700; margin:18px 0 8px; display:flex; align-items:center; gap:8px;}
+
+  .revise-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; padding:14px; margin-top:6px; border-radius:12px; border:2px solid var(--ink);
+    background:var(--teal); color:#fff; font-weight:700; font-size:16px; cursor:pointer;
+    box-shadow: 4px 4px 0 rgba(43,42,40,0.18);
+  }
+  .revise-btn:active{transform:translate(2px,2px); box-shadow:none;}
+  .revise-btn .ur{font-size:12px; font-weight:400; opacity:.85;}
+
+  /* ===== Topic list ===== */
+  .back-row{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .back-row .icon-btn{width:34px; height:34px;}
+  .back-row h2{font-family:'Caveat'; font-size:26px; margin:0; font-weight:700;}
+
+  .topic-row{
+    display:flex; align-items:center; gap:12px; padding:12px 10px;
+    border-bottom:1.5px solid var(--rule-blue); cursor:pointer;
+  }
+  .topic-row:active{background:var(--paper-2);}
+  .topic-num{
+    font-family:'IBM Plex Mono'; font-size:13px; color:#fff; background:var(--ink);
+    width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .topic-title{flex:1; font-size:15.5px; font-weight:500;}
+  .topic-flags{display:flex; gap:4px; font-size:15px;}
+
+  /* ===== Topic detail — "notebook page" ===== */
+  .nav-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .nav-row .mid{font-family:'IBM Plex Mono'; font-size:12px; color:var(--ink-soft); text-align:center;}
+
+  .page-card{
+    position:relative; border-radius:14px; border:2px solid var(--ink);
+    background:
+      repeating-linear-gradient(var(--paper) 0 27px, var(--rule-blue) 27px 28.5px),
+      var(--paper);
+    padding:16px 16px 16px 30px; box-shadow:var(--shadow); overflow:hidden;
+  }
+  .page-card::before{
+    content:''; position:absolute; left:22px; top:0; bottom:0; width:2px; background:var(--margin-red); opacity:.6;
+  }
+  .spiral{
+    position:absolute; left:-9px; top:14px; bottom:14px; width:18px;
+    background-image: radial-gradient(circle, var(--paper) 3px, transparent 3.5px);
+    background-size: 18px 22px; background-repeat: repeat-y;
+  }
+  .spiral::after{
+    content:''; position:absolute; inset:0;
+    background-image: radial-gradient(circle, transparent 4px, var(--ink) 4.2px, var(--ink) 5px, transparent 5.2px);
+    background-size: 18px 22px; background-repeat: repeat-y; opacity:.5;
+  }
+  .page-heading{font-family:'Caveat'; font-weight:700; font-size:26px; margin:0 0 10px; position:relative; z-index:2;}
+  .photo-slot{
+    position:relative; z-index:2; border-radius:8px; overflow:hidden; margin-bottom:12px;
+    border:1px solid rgba(0,0,0,0.1); background:#fff;
+  }
+  .photo-slot img{width:100%; display:block;}
+  .empty-photo{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+    padding:36px 16px; border:2.5px dashed var(--ink-soft); border-radius:10px; background:rgba(255,255,255,.5);
+    text-align:center;
+  }
+  .empty-photo .big{font-size:32px;}
+  .empty-photo p{margin:0; font-size:14px; color:var(--ink-soft);}
+  .tape{
+    position:absolute; top:-6px; width:46px; height:20px; background:rgba(244,224,77,0.55);
+    border:1px solid rgba(0,0,0,0.05); transform:rotate(-4deg); z-index:3;
+  }
+  .tape.right{right:14px; transform:rotate(5deg);}
+  .tape.left{left:14px;}
+
+  .btn-row{display:flex; gap:8px; position:relative; z-index:2; margin-bottom:14px;}
+  .btn{
+    flex:1; padding:11px 10px; border-radius:10px; border:2px solid var(--ink); background:#fff;
+    font-family:'Inter'; font-weight:600; font-size:13.5px; cursor:pointer; text-align:center;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{background:var(--ink); color:var(--paper);}
+  .btn.danger{color:#a63d40; border-color:#a63d40; flex:0 0 auto; padding:11px 14px;}
+
+  .notes-label{font-family:'Caveat'; font-size:19px; font-weight:700; margin:2px 0 6px; position:relative; z-index:2;}
+  textarea.notes{
+    position:relative; z-index:2; width:100%; min-height:90px; border-radius:8px; border:1.5px solid var(--ink-soft);
+    padding:10px; font-family:'Inter'; font-size:14px; background:rgba(255,255,255,.6); resize:vertical;
+  }
+
+  .studied-row{
+    position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between;
+    margin-top:14px; padding:10px 12px; border-radius:10px; border:2px solid var(--ink); background:rgba(255,255,255,.55);
+  }
+  .studied-row span{font-weight:600; font-size:14.5px;}
+  .toggle{
+    width:48px; height:26px; border-radius:20px; border:2px solid var(--ink); background:#fff; position:relative; cursor:pointer; flex-shrink:0;
+  }
+  .toggle .knob{
+    position:absolute; top:1px; left:1px; width:18px; height:18px; border-radius:50%; background:var(--ink); transition:left .2s;
+  }
+  .toggle.on{background:var(--hi-yellow);}
+  .toggle.on .knob{left:24px;}
+
+  input[type=file]{display:none;}
+
+  /* ===== Revision mode ===== */
+  #revise-view{
+    position:fixed; inset:0; background:var(--ink); color:#fff; z-index:100;
+    display:none; flex-direction:column;
+  }
+  #revise-view.open{display:flex;}
+  .rv-top{display:flex; align-items:center; justify-content:space-between; padding:14px 16px;}
+  .rv-top .close{color:#fff; font-size:22px; background:none; border:none; cursor:pointer;}
+  .rv-counter{font-family:'IBM Plex Mono'; font-size:13px; opacity:.8;}
+  .rv-body{flex:1; display:flex; align-items:center; justify-content:center; position:relative; padding:0 6px;}
+  .rv-card{
+    width:100%; max-width:480px; max-height:80vh; overflow:auto; background:var(--paper); color:var(--ink);
+    border-radius:16px; padding:16px 16px 16px 30px; position:relative;
+    background:
+      repeating-linear-gradient(var(--paper) 0 27px, var(--rule-blue) 27px 28.5px),
+      var(--paper);
+  }
+  .rv-card::before{content:''; position:absolute; left:22px; top:0; bottom:0; width:2px; background:var(--margin-red); opacity:.6;}
+  .rv-card h3{font-family:'Caveat'; font-size:26px; margin:0 0 10px; position:relative; z-index:2;}
+  .rv-card img{width:100%; border-radius:8px; position:relative; z-index:2; margin-bottom:10px;}
+  .rv-card .rv-notes{position:relative; z-index:2; font-size:14px; white-space:pre-wrap; color:var(--ink-soft);}
+  .rv-empty{color:#fff; text-align:center; padding:30px; font-size:15px; opacity:.8;}
+  .rv-nav{display:flex; justify-content:space-between; padding:16px 20px 26px;}
+  .rv-nav button{
+    background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.4); color:#fff;
+    padding:12px 20px; border-radius:10px; font-weight:600; font-size:15px; cursor:pointer;
+  }
+  .rv-nav button:disabled{opacity:.3;}
+  .rv-filter{padding:0 16px 10px; display:flex; gap:6px; overflow-x:auto;}
+  .rv-filter button{
+    flex:0 0 auto; padding:6px 12px; border-radius:20px; border:1.5px solid rgba(255,255,255,0.4);
+    background:transparent; color:#fff; font-size:12.5px; cursor:pointer; white-space:nowrap;
+  }
+  .rv-filter button.active{background:var(--hi-yellow); color:var(--ink); border-color:var(--hi-yellow); font-weight:700;}
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff;
+    padding:10px 18px; border-radius:10px; font-size:14px; z-index:200; opacity:0; pointer-events:none; transition:opacity .25s;
+  }
+  .toast.show{opacity:1;}
+
+  /* ===== Admin lock ===== */
+  .icon-btn.admin-on{background:var(--hi-yellow);}
+  .pin-overlay{
+    position:fixed; inset:0; background:rgba(43,42,40,0.55); z-index:300;
+    display:none; align-items:center; justify-content:center; padding:20px;
+  }
+  .pin-overlay.open{display:flex;}
+  .pin-box{
+    background:var(--paper); border:2px solid var(--ink); border-radius:14px; padding:22px 20px;
+    width:100%; max-width:320px; box-shadow:var(--shadow);
+  }
+  .pin-box h3{font-family:'Caveat'; font-size:24px; margin:0 0 4px;}
+  .pin-box p{font-size:12.5px; color:var(--ink-soft); margin:0 0 12px;}
+  .pin-box input{
+    width:100%; padding:12px; border:2px solid var(--ink); border-radius:10px; font-size:18px;
+    letter-spacing:4px; text-align:center; margin-bottom:10px;
+  }
+  .pin-box .btn-row{margin-bottom:0;}
+  .view-only-badge{
+    display:flex; align-items:center; gap:6px; background:var(--paper-2); border:1.5px dashed var(--ink-soft);
+    border-radius:10px; padding:9px 12px; font-size:12.5px; color:var(--ink-soft); margin-bottom:12px;
+  }
+  .sync-banner{
+    font-size:11.5px; text-align:center; padding:6px; color:var(--ink-soft); background:var(--paper-2);
+    border-radius:8px; margin-bottom:10px;
+  }
+
+  .empty-state{text-align:center; padding:40px 20px; color:var(--ink-soft);}
+  .empty-state .big{font-size:36px; margin-bottom:8px;}
+
+  ::-webkit-scrollbar{width:0; height:0;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brand">
+      <div>
+        <h1>📒 My AI Notebook</h1>
+        <div class="ur">زیرو ٹو ایجنٹ — اسٹڈی ٹریکر</div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="searchToggle" title="Search">🔍</button>
+        <button class="icon-btn" id="adminToggle" title="Admin">🔒</button>
+      </div>
+    </div>
+    <div class="search-wrap" id="searchWrap">
+      <input type="text" id="searchInput" placeholder="Search a topic... (e.g. Context Window)">
+    </div>
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="overallBar"></div></div>
+    <div class="progress-label"><span id="overallLabel">0 of 0 topics captured</span><span id="overallPct">0%</span></div>
+  </header>
+
+  <main id="main"></main>
+
+  <footer class="credit">
+    <span class="hand">Built by Shahab Alam 🌱</span>
+    From Shahab — to everyone who truly wants to learn and build something real.<br>
+    شہاب کی طرف سے — ہر اس شخص کے لیے جو سچے دل سے کچھ سیکھنا اور بنانا چاہتا ہے۔<br>
+    <span style="opacity:.7">#ZeroToAgent</span>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="pin-overlay" id="pinOverlay">
+    <div class="pin-box">
+      <h3>🔒 Admin Access</h3>
+      <p>Enter your PIN to add/edit pages.<br>ایڈمن پن درج کریں</p>
+      <input type="password" inputmode="numeric" id="pinInput" placeholder="••••" maxlength="12">
+      <div class="btn-row">
+        <button class="btn" id="pinCancel">Cancel</button>
+        <button class="btn primary" id="pinSubmit">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="revise-view">
+    <div class="rv-top">
+      <button class="close" id="rvClose">✕</button>
+      <div class="rv-counter" id="rvCounter"></div>
+      <div style="width:22px"></div>
+    </div>
+    <div class="rv-filter" id="rvFilter"></div>
+    <div class="rv-body" id="rvBody"></div>
+    <div class="rv-nav">
+      <button id="rvPrev">← Prev</button>
+      <button id="rvNext">Next →</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+
+// ==================================================================================
+// 🔧 SHAHAB — SETUP REQUIRED (one-time):
+// 1) Go to https://console.firebase.google.com → Create a free project
+// 2) Build → Realtime Database → Create Database → start in TEST MODE
+// 3) Project Settings → General → scroll to "Your apps" → Add app (</>) → copy the config
+// 4) Paste that config below, replacing the placeholder values
+// 5) In Realtime Database → Rules tab, paste this and Publish:
+//    { "rules": { ".read": true, ".write": true } }
+//    (Public read for everyone, write allowed — but the app UI itself only shows
+//     edit/upload controls after YOUR pin is entered, so casual visitors never see them.)
+// 6) Change ADMIN_PIN below to your own secret PIN.
+// ==================================================================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBqnOX9N453CWQJr9efLlvy9wpE5kM0n_c",
+  authDomain: "zero-to-agent-fcfbb.firebaseapp.com",
+  databaseURL: "https://zero-to-agent-fcfbb-default-rtdb.firebaseio.com",
+  projectId: "zero-to-agent-fcfbb"
+};
+const ADMIN_PIN = "7823"; // 🔑 change this to your own secret PIN
+
+let FIREBASE_READY = false;
+let fbDb = null;
+try{
+  if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf('PASTE') === -1 && window.firebase){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fbDb = firebase.database();
+    FIREBASE_READY = true;
+  }
+}catch(e){ console.error('Firebase init failed', e); FIREBASE_READY = false; }
+
+// ---------- Storage shim: uses Firebase (shared, public) when configured, else localStorage (private, this device only) ----------
+window.storage = {
+  async get(key, shared){
+    if (FIREBASE_READY){
+      const snap = await fbDb.ref('zta/' + key).once('value');
+      const val = snap.val();
+      if (val === null || val === undefined) throw new Error('not found');
+      return { key, value: val, shared: !!shared };
+    }
+    const raw = localStorage.getItem('zta_' + key);
+    if (raw === null) throw new Error('not found');
+    return { key, value: raw, shared: !!shared };
+  },
+  async set(key, value, shared){
+    if (FIREBASE_READY){
+      await fbDb.ref('zta/' + key).set(value);
+      return { key, value, shared: !!shared };
+    }
+    localStorage.setItem('zta_' + key, value);
+    return { key, value, shared: !!shared };
+  },
+  async delete(key, shared){
+    if (FIREBASE_READY){
+      await fbDb.ref('zta/' + key).remove();
+      return { key, deleted: true, shared: !!shared };
+    }
+    localStorage.removeItem('zta_' + key);
+    return { key, deleted: true, shared: !!shared };
+  }
+};
+
+// ---------- Curriculum data ----------
+const PHASES = [
+  {n:1, name:"AI Foundations", color:"#6B8F71", topics:[
+    "What is AI","Machine Learning","Generative AI","LLM Basics","Context Window","Limitations and Responsible AI"
+  ]},
+  {n:2, name:"Prompt & Context Engineering", color:"#4C7A9E", topics:[
+    "Prompt Design","System Prompts","Role Prompting","Few-Shot Prompting","Context Engineering","Communicating Effectively with AI Models"
+  ]},
+  {n:3, name:"LLM Engineering", color:"#7C5CA6", topics:[
+    "How LLMs Work (Deep Dive)","Tokens (Deep Dive)","Context Windows (Deep Dive)","Model Selection","APIs (LLM Engineering)",
+    "OpenAI API","Claude API","RAG Systems","Vector Databases","AI Memory Systems","LLM Application Architecture"
+  ]},
+  {n:4, name:"Claude Code & AI Dev", color:"#C97B4A", topics:[
+    "Claude Code Workflow","Using AI for Programming","Understanding Generated Code","Debugging","Building Real Projects with AI Assistance"
+  ]},
+  {n:5, name:"Programming Foundation", color:"#3E7C7C", topics:[
+    "Python","JavaScript Basics","HTML","CSS","APIs (Programming Foundation)","Databases","Software Development Fundamentals"
+  ]},
+  {n:6, name:"GitHub & Developer Identity", color:"#8A6D3B", topics:[
+    "What is GitHub?","What is Git?","Repository","Version Control","Uploading Projects","README Files","Creating a Developer Portfolio"
+  ]},
+  {n:7, name:"Website & App Development", color:"#B5548A", topics:[
+    "How Websites Work","How to Build Websites","Frontend Basics","Backend Basics","Deployment","Domains and Hosting",
+    "Project: Personal AI Portfolio Website"
+  ]},
+  {n:8, name:"AI Automation", color:"#2F8F5B", topics:[
+    "n8n","APIs Connection","Workflow Automation","WhatsApp Automation","Business Automation",
+    "Project: Customer Support Agent","Project: Restaurant AI Assistant (Go Crispy)","Project: Productivity Automation"
+  ]},
+  {n:9, name:"AI Agents Mastery", color:"#A63D40", topics:[
+    "Agent Architecture","Agent Tools","Agent Memory","Agent Planning","Multi-Step Workflows",
+    "Agent Evaluation","Project: Personal AI Assistant","Project: Research Agent","Project: Education Assistant","Project: Social Impact AI Agent"
+  ]}
+];
+
+// Flatten into topic list with global numbering + ids
+const TOPICS = [];
+let counter = 1;
+PHASES.forEach(ph => {
+  ph.topics.forEach(title => {
+    TOPICS.push({
+      id: 't' + String(counter).padStart(2,'0'),
+      num: counter,
+      title: title,
+      phaseNum: ph.n,
+      phaseName: ph.name,
+      phaseColor: ph.color
+    });
+    counter++;
+  });
+});
+const TOTAL_TOPICS = TOPICS.length;
+
+// ---------- State ----------
+let INDEX = {};        // { topicId: {p: hasPhoto, s: studied} }
+let CACHE = {};        // in-memory cache of full topic records already fetched
+let currentView = 'home';
+let currentPhase = null;
+let currentTopicId = null;
+let reviseList = [];
+let reviseIdx = 0;
+let reviseFilterPhase = 'all';
+let isAdmin = localStorage.getItem('zta_admin') === '1';
+
+const $main = document.getElementById('main');
+const $toast = document.getElementById('toast');
+
+function showToast(msg){
+  $toast.textContent = msg;
+  $toast.classList.add('show');
+  setTimeout(()=>$toast.classList.remove('show'), 1800);
+}
+
+// ---------- Storage helpers ----------
+async function loadIndex(){
+  try{
+    const r = await window.storage.get('index', false);
+    INDEX = r && r.value ? JSON.parse(r.value) : {};
+  }catch(e){ INDEX = {}; }
+}
+async function saveIndex(){
+  try{ await window.storage.set('index', JSON.stringify(INDEX), false); }
+  catch(e){ console.error('index save failed', e); }
+}
+async function getTopicRecord(id){
+  if(CACHE[id]) return CACHE[id];
+  try{
+    const r = await window.storage.get('topic:'+id, false);
+    const rec = r && r.value ? JSON.parse(r.value) : {photo:null, notes:'', studied:false};
+    CACHE[id] = rec;
+    return rec;
+  }catch(e){
+    const rec = {photo:null, notes:'', studied:false};
+    CACHE[id] = rec;
+    return rec;
+  }
+}
+async function saveTopicRecord(id, rec){
+  CACHE[id] = rec;
+  try{
+    await window.storage.set('topic:'+id, JSON.stringify(rec), false);
+  }catch(e){ showToast('Save failed — try again'); console.error(e); return false; }
+  INDEX[id] = {p: !!rec.photo, s: !!rec.studied};
+  await saveIndex();
+  return true;
+}
+
+// ---------- Image compression ----------
+function compressImage(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = function(e){
+      const img = new Image();
+      img.onload = function(){
+        let quality = 0.72;
+        let maxW = 1000;
+        function render(){
+          const scale = Math.min(1, maxW / img.width);
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+          ctx.drawImage(img, 0, 0, w, h);
+          let dataUrl = canvas.toDataURL('image/jpeg', quality);
+          return dataUrl;
+        }
+        let dataUrl = render();
+        let tries = 0;
+        while(dataUrl.length > 1300000 && tries < 6){
+          if(quality > 0.4) quality -= 0.12; else maxW = Math.round(maxW*0.85);
+          dataUrl = render();
+          tries++;
+        }
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- Rendering: HOME ----------
+function renderHome(){
+  currentView = 'home';
+  updateOverallProgress();
+
+  let html = `
+    ${FIREBASE_READY ? '' : `<div class="sync-banner">⚠️ Shared mode not set up yet — running in local-only mode. See setup steps in the code comments.</div>`}
+    <div class="revise-btn" id="reviseBtn">
+      🔄 Revise old topics <span class="ur">&nbsp;— دہرائیں</span>
+    </div>
+    <div class="section-label">📚 Phases</div>
+  `;
+
+  PHASES.forEach(ph=>{
+    const total = ph.topics.length;
+    const done = ph.topics.reduce((acc,_,i)=>{
+      const t = TOPICS.find(x=>x.phaseNum===ph.n && x.title===ph.topics[i]);
+      return acc + (INDEX[t.id] && INDEX[t.id].p ? 1 : 0);
+    },0);
+    html += `
+      <div class="phase-card" data-phase="${ph.n}">
+        <div class="phase-tab-color" style="background:${ph.color}"></div>
+        <div style="flex:1">
+          <div class="phase-num">PHASE ${ph.n}</div>
+          <div class="phase-title">${ph.name}</div>
+          <div class="phase-meta">${total} topics</div>
+        </div>
+        <div class="phase-progress-ring">
+          <b>${done}/${total}</b>
+          captured
+        </div>
+      </div>
+    `;
+  });
+
+  $main.innerHTML = html;
+
+  document.getElementById('reviseBtn').onclick = openRevise;
+  document.querySelectorAll('.phase-card').forEach(el=>{
+    el.onclick = ()=> renderPhase(parseInt(el.dataset.phase));
+  });
+}
+
+function updateOverallProgress(){
+  const doneCount = TOPICS.filter(t=> INDEX[t.id] && INDEX[t.id].p).length;
+  const pct = Math.round((doneCount/TOTAL_TOPICS)*100);
+  document.getElementById('overallBar').style.width = pct+'%';
+  document.getElementById('overallLabel').textContent = `${doneCount} of ${TOTAL_TOPICS} topics captured`;
+  document.getElementById('overallPct').textContent = pct+'%';
+}
+
+// ---------- Rendering: PHASE (topic list) ----------
+function renderPhase(phaseNum){
+  currentView = 'phase';
+  currentPhase = phaseNum;
+  const ph = PHASES.find(p=>p.n===phaseNum);
+  const topics = TOPICS.filter(t=>t.phaseNum===phaseNum);
+
+  let html = `
+    <div class="back-row">
+      <button class="icon-btn" id="backHome">←</button>
+      <h2>Phase ${ph.n}: ${ph.name}</h2>
+    </div>
+  `;
+  topics.forEach(t=>{
+    const idx = INDEX[t.id] || {};
+    html += `
+      <div class="topic-row" data-id="${t.id}">
+        <div class="topic-num">${String(t.num).padStart(2,'0')}</div>
+        <div class="topic-title">${t.title}</div>
+        <div class="topic-flags">${idx.p?'📷':''}${idx.s?'✅':''}</div>
+      </div>
+    `;
+  });
+  $main.innerHTML = html;
+  document.getElementById('backHome').onclick = renderHome;
+  document.querySelectorAll('.topic-row').forEach(el=>{
+    el.onclick = ()=> renderTopic(el.dataset.id);
+  });
+}
+
+// ---------- Rendering: TOPIC DETAIL ----------
+async function renderTopic(id){
+  currentView = 'topic';
+  currentTopicId = id;
+  const t = TOPICS.find(x=>x.id===id);
+  const rec = await getTopicRecord(id);
+
+  const globalPos = TOPICS.findIndex(x=>x.id===id);
+
+  const editableBlock = isAdmin ? `
+      <div class="btn-row">
+        <label class="btn primary" style="cursor:pointer;">
+          📷 ${rec.photo ? 'Replace Photo' : 'Add Photo'}
+          <input type="file" accept="image/*" id="photoInput">
+        </label>
+        ${rec.photo ? '<button class="btn danger" id="deletePhoto">🗑</button>' : ''}
+      </div>
+
+      <div class="notes-label">✏️ Notes (optional)</div>
+      <textarea class="notes" id="notesArea" placeholder="Add any extra notes here...">${rec.notes||''}</textarea>
+
+      <div class="studied-row">
+        <span>✅ Mark as Studied</span>
+        <div class="toggle ${rec.studied?'on':''}" id="studiedToggle"><div class="knob"></div></div>
+      </div>
+  ` : `
+      <div class="view-only-badge">👁️ View only — only Shahab can edit this notebook</div>
+      ${rec.notes ? `<div class="notes-label">✏️ Notes</div><div style="position:relative;z-index:2;font-size:14px;color:var(--ink-soft);white-space:pre-wrap;">${rec.notes.replace(/</g,'&lt;')}</div>` : ''}
+      ${rec.studied ? `<div class="studied-row"><span>✅ Studied</span></div>` : ''}
+  `;
+
+  $main.innerHTML = `
+    <div class="nav-row">
+      <button class="icon-btn" id="backPhase">←</button>
+      <div class="mid">TOPIC ${String(t.num).padStart(2,'0')} / ${TOTAL_TOPICS}</div>
+      <button class="icon-btn" id="prevTopic" ${globalPos<=0?'disabled':''}>‹</button>
+    </div>
+    <div class="page-card">
+      <div class="spiral"></div>
+      <div class="tape left"></div>
+      <div class="tape right"></div>
+      <div class="page-heading">${String(t.num).padStart(2,'0')} — ${t.title}</div>
+
+      <div id="photoArea"></div>
+
+      ${editableBlock}
+    </div>
+  `;
+  renderPhotoArea(rec.photo);
+
+  document.getElementById('backPhase').onclick = ()=> renderPhase(t.phaseNum);
+  document.getElementById('prevTopic').onclick = ()=>{ if(globalPos>0) renderTopic(TOPICS[globalPos-1].id); };
+  document.querySelector('.nav-row').insertAdjacentHTML('beforeend', `<button class="icon-btn" id="nextTopic" ${globalPos>=TOTAL_TOPICS-1?'disabled':''}>›</button>`);
+  document.getElementById('nextTopic').onclick = ()=>{ if(globalPos<TOTAL_TOPICS-1) renderTopic(TOPICS[globalPos+1].id); };
+
+  if (!isAdmin) return; // no edit handlers needed for public viewers
+
+  document.getElementById('photoInput').onchange = async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    showToast('Compressing photo...');
+    try{
+      const dataUrl = await compressImage(file);
+      const updated = {...rec, photo: dataUrl};
+      const ok = await saveTopicRecord(id, updated);
+      if(ok){ showToast('Photo saved ✅'); renderTopic(id); }
+    }catch(err){
+      console.error(err);
+      showToast('Could not process photo');
+    }
+  };
+
+  const delBtn = document.getElementById('deletePhoto');
+  if(delBtn){
+    delBtn.onclick = async ()=>{
+      const updated = {...rec, photo:null};
+      await saveTopicRecord(id, updated);
+      showToast('Photo removed');
+      renderTopic(id);
+    };
+  }
+
+  const notesArea = document.getElementById('notesArea');
+  let notesTimer;
+  notesArea.oninput = ()=>{
+    clearTimeout(notesTimer);
+    notesTimer = setTimeout(async ()=>{
+      const updated = {...(await getTopicRecord(id)), notes: notesArea.value};
+      await saveTopicRecord(id, updated);
+    }, 700);
+  };
+
+  document.getElementById('studiedToggle').onclick = async function(){
+    const cur = await getTopicRecord(id);
+    const updated = {...cur, studied: !cur.studied};
+    await saveTopicRecord(id, updated);
+    this.classList.toggle('on');
+  };
+}
+
+function renderPhotoArea(photo){
+  const area = document.getElementById('photoArea');
+  if(photo){
+    area.innerHTML = `<div class="photo-slot"><img src="${photo}"></div>`;
+  }else{
+    area.innerHTML = `
+      <div class="photo-slot">
+        <div class="empty-photo">
+          <div class="big">📓</div>
+          <p>No photo yet — snap your notebook page<br><span style="font-size:12px">ابھی تصویر نہیں — اپنے صفحے کی تصویر لیں</span></p>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// ---------- Admin lock ----------
+function updateAdminBtn(){
+  const btn = document.getElementById('adminToggle');
+  btn.classList.toggle('admin-on', isAdmin);
+  btn.textContent = isAdmin ? '🔓' : '🔒';
+}
+document.getElementById('adminToggle').onclick = ()=>{
+  if (isAdmin){
+    isAdmin = false;
+    localStorage.setItem('zta_admin','0');
+    updateAdminBtn();
+    showToast('Admin mode off — view only now');
+    if (currentView==='topic') renderTopic(currentTopicId);
+    return;
+  }
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('pinInput').focus(), 100);
+};
+document.getElementById('pinCancel').onclick = ()=>{
+  document.getElementById('pinOverlay').classList.remove('open');
+};
+document.getElementById('pinSubmit').onclick = submitPin;
+document.getElementById('pinInput').addEventListener('keydown', e=>{ if(e.key==='Enter') submitPin(); });
+function submitPin(){
+  const val = document.getElementById('pinInput').value;
+  if (val === ADMIN_PIN){
+    isAdmin = true;
+    localStorage.setItem('zta_admin','1');
+    document.getElementById('pinOverlay').classList.remove('open');
+    updateAdminBtn();
+    showToast('Admin unlocked ✅');
+    if (currentView==='topic') renderTopic(currentTopicId);
+  }else{
+    showToast('Wrong PIN ❌');
+  }
+}
+updateAdminBtn();
+
+// ---------- Search ----------
+document.getElementById('searchToggle').onclick = ()=>{
+  const wrap = document.getElementById('searchWrap');
+  wrap.classList.toggle('open');
+  if(wrap.classList.contains('open')) document.getElementById('searchInput').focus();
+};
+document.getElementById('searchInput').addEventListener('input', (e)=>{
+  const q = e.target.value.trim().toLowerCase();
+  if(q.length < 1){ if(currentView==='home') renderHome(); return; }
+  const results = TOPICS.filter(t=> t.title.toLowerCase().includes(q));
+  currentView = 'search';
+  let html = `<div class="section-label">🔍 Results for "${e.target.value}"</div>`;
+  if(results.length===0){
+    html += `<div class="empty-state"><div class="big">🤷</div>No topics found</div>`;
+  }else{
+    results.forEach(t=>{
+      const idx = INDEX[t.id] || {};
+      html += `
+        <div class="topic-row" data-id="${t.id}">
+          <div class="topic-num">${String(t.num).padStart(2,'0')}</div>
+          <div class="topic-title">${t.title}<br><span style="font-size:11px;color:var(--ink-soft)">Phase ${t.phaseNum}</span></div>
+          <div class="topic-flags">${idx.p?'📷':''}${idx.s?'✅':''}</div>
+        </div>
+      `;
+    });
+  }
+  $main.innerHTML = html;
+  document.querySelectorAll('.topic-row').forEach(el=>{
+    el.onclick = ()=> renderTopic(el.dataset.id);
+  });
+});
+
+// ---------- Revision mode ----------
+function buildReviseList(){
+  let pool = TOPICS.filter(t => INDEX[t.id] && INDEX[t.id].p);
+  if(reviseFilterPhase !== 'all'){
+    pool = pool.filter(t => t.phaseNum === reviseFilterPhase);
+  }
+  return pool;
+}
+
+function renderRevideFilters(){
+  const $f = document.getElementById('rvFilter');
+  let html = `<button data-p="all" class="${reviseFilterPhase==='all'?'active':''}">All</button>`;
+  PHASES.forEach(ph=>{
+    const hasAny = TOPICS.some(t=>t.phaseNum===ph.n && INDEX[t.id] && INDEX[t.id].p);
+    if(hasAny){
+      html += `<button data-p="${ph.n}" class="${reviseFilterPhase===ph.n?'active':''}">P${ph.n}</button>`;
+    }
+  });
+  $f.innerHTML = html;
+  $f.querySelectorAll('button').forEach(b=>{
+    b.onclick = ()=>{
+      reviseFilterPhase = b.dataset.p==='all' ? 'all' : parseInt(b.dataset.p);
+      reviseList = buildReviseList();
+      reviseIdx = 0;
+      renderRevideFilters();
+      renderReviseCard();
+    };
+  });
+}
+
+async function renderReviseCard(){
+  const $body = document.getElementById('rvBody');
+  const $counter = document.getElementById('rvCounter');
+  if(reviseList.length===0){
+    $body.innerHTML = `<div class="rv-empty">📭 No captured pages yet for this filter.<br>Add a photo to a topic first!</div>`;
+    $counter.textContent = '';
+    document.getElementById('rvPrev').disabled = true;
+    document.getElementById('rvNext').disabled = true;
+    return;
+  }
+  const t = reviseList[reviseIdx];
+  const rec = await getTopicRecord(t.id);
+  $counter.textContent = `${reviseIdx+1} / ${reviseList.length}`;
+  $body.innerHTML = `
+    <div class="rv-card">
+      <div class="spiral" style="display:none"></div>
+      <h3>${String(t.num).padStart(2,'0')} — ${t.title}</h3>
+      ${rec.photo ? `<img src="${rec.photo}">` : ''}
+      ${rec.notes ? `<div class="rv-notes">${rec.notes.replace(/</g,'&lt;')}</div>` : ''}
+    </div>
+  `;
+  document.getElementById('rvPrev').disabled = reviseIdx<=0;
+  document.getElementById('rvNext').disabled = reviseIdx>=reviseList.length-1;
+}
+
+function openRevise(){
+  reviseFilterPhase = 'all';
+  reviseList = buildReviseList();
+  reviseIdx = 0;
+  document.getElementById('revise-view').classList.add('open');
+  renderRevideFilters();
+  renderReviseCard();
+}
+document.getElementById('rvClose').onclick = ()=>{
+  document.getElementById('revise-view').classList.remove('open');
+};
+document.getElementById('rvPrev').onclick = ()=>{ if(reviseIdx>0){ reviseIdx--; renderReviseCard(); } };
+document.getElementById('rvNext').onclick = ()=>{ if(reviseIdx<reviseList.length-1){ reviseIdx++; renderReviseCard(); } };
+
+// swipe support for revise body
+(function(){
+  let startX = null;
+  const body = document.getElementById('rvBody');
+  body.addEventListener('touchstart', e=>{ startX = e.touches[0].clientX; });
+  body.addEventListener('touchend', e=>{
+    if(startX===null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if(Math.abs(dx) > 50){
+      if(dx < 0 && reviseIdx < reviseList.length-1){ reviseIdx++; renderReviseCard(); }
+      else if(dx > 0 && reviseIdx > 0){ reviseIdx--; renderReviseCard(); }
+    }
+    startX = null;
+  });
+})();
+
+// ---------- Init ----------
+async function init(){
+  $main.innerHTML = `<div class="empty-state"><div class="big">📖</div>Loading your notebook...</div>`;
+  await loadIndex();
+  renderHome();
+}
+init();
+
+})();
+</script>
+</body>
+</html>
